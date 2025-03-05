@@ -175,13 +175,60 @@ class UserController extends Controller
         return response()->json($signup, 200);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/user/logout",
+     *     summary="Cierre de sesión",
+     *     description=" Cierre de sesión de usuario, eliminando así el Token de acceso.",
+     *     tags={"Autenticación"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", example="ejemplo12@gmail.com"),
+     *             @OA\Property(property="password", type="string", example="12345"),
+     *             @OA\Property(property="gettoken", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Respuesta de éxito",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Login correcto"),
+     *             @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Credenciales incorrectas",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Credenciales incorrectas")
+     *         )
+     *     )
+     * )
+     */
     /**Función para el cierre de sesión de los usuarios */
     public function logout(Request $request){
         /**Se obtiene el token de acceso */
         $jwt = $request->bearerToken();
 
+        if(!$jwt){
+            return response()->json([
+                'message' => 'Token no valido o sesion expirada'
+            ], 401);
+        }
+
         /**Se marca el token como inactivo */
-        DB::table('user_tokens')->where('token', $jwt)->update(['is_active' => false]);
+        $cambioToken = DB::table('user_tokens')
+            ->where('token', $jwt)
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+
+        if($cambioToken === 0){
+            return response()->json([
+                'message' => 'Token no valido o expirado'
+            ], 401);
+        }
 
         return response()->json(['message' => 'Cierre de sesion exitoso']);
 
